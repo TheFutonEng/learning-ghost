@@ -1,0 +1,43 @@
+controller:
+  kind: DaemonSet
+  service:
+    type: LoadBalancer
+    ports:
+      http: 80
+      https: 443
+  config:
+    ssl-redirect: "true"
+    ssl-redirect-code: "301"
+  defaultTLSSecret:
+    namespace: ingress-controller
+    name: haproxy-tls
+  extraArgs:
+    - --default-ssl-certificate=ingress-controller/wsp-local-tls
+    - --allow-cross-namespace=true
+  ingressClassResource:
+    default: "true"
+  containerPorts:
+    http: 80
+    https: 443
+    stat: 1024
+
+defaultBackend:
+  enabled: "true"
+
+config:
+  enabled: "true"
+  defaults: |
+    timeout connect 10s
+    timeout client  30s
+    timeout server  30s
+    timeout http-request 10s
+    timeout http-keep-alive 10s
+
+  ssl-options: "no-sslv3 no-tlsv10 no-tlsv11"
+
+  frontend: |
+    bind *:443 ssl crt /etc/haproxy/certs/tls.pem alpn h2,http/1.1
+    http-request add-header X-Forwarded-Proto https if { ssl_fc }
+    http-request add-header X-Forwarded-Port 8443 if { ssl_fc }
+    http-request set-header X-Forwarded-Host %[req.hdr(Host)]
+    http-request set-header X-Original-Host %[req.hdr(Host),regsub(:8443,)]

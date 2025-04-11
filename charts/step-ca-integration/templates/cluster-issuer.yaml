@@ -1,0 +1,14 @@
+apiVersion: certmanager.step.sm/v1beta1
+kind: StepClusterIssuer
+metadata:
+  name: step-cluster-issuer
+spec:
+  url: {{ required "stepCA.url is required" .Values.stepCA.url }}
+  caBundle: {{ required "certificates.root is required" .Values.certificates.caBundle }}
+  provisioner:
+    name: {{ required "stepCA.provisioner.name is required" .Values.stepCA.provisioner.name }}
+    kid: {{ required "stepCA.provisioner.kid is required" .Values.stepCA.provisioner.kid }}
+    passwordRef:
+      name: step-credentials
+      namespace: {{ required "stepCA.secret.namespace is required" .Values.stepCA.secret.namespace }}
+      key: password

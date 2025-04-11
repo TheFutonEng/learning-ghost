@@ -1,0 +1,21 @@
+# Default values for step-ca-integration
+stepCA:
+  url: ""
+  provisioner:
+    name: ""
+    kid: ""
+
+certificates:
+  intermediate: ""
+  root: ""
+  intermediateKey: ""
+  caPassword: ""
+
+# Optional dependency installations
+cert-manager:
+  enabled: true
+  installCRDs: true
+
+step-issuer:
+  enabled: true
+  create: true

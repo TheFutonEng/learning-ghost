@@ -1,0 +1,25 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: wsp-local-wildcard
+  namespace: ingress-controller
+spec:
+  secretName: wsp-local-tls
+  duration: 24h # 24 hours
+  renewBefore: 8h # renew when there's 8 hours left
+  subject:
+    organizations:
+      - WSP Local
+  commonName: "*.wsp.local"
+  dnsNames:
+    - "*.wsp.local"
+  issuerRef:
+    name: step-cluster-issuer
+    kind: StepClusterIssuer
+    group: certmanager.step.sm
+  usages:
+    - server auth
+    - client auth
+  privateKey:
+    algorithm: ECDSA
+    size: 256

@@ -1,0 +1,5 @@
+# Keep CA certificate files (public)
+!ca/*.cert.pem
+!ca/certs/
+pki
+step-ca-integration-values.yaml

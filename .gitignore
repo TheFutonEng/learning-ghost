@@ -3,3 +3,6 @@
 !ca/certs/
 pki
 step-ca-integration-values.yaml
+
+# Do not keep k3d-templater binary
+k3d-templater

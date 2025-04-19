@@ -1,0 +1,14 @@
+stepCA:
+  url: <<YOUR_STEP_CA_URL>>
+  secret:
+    namespace: step-issuer
+  provisioner:
+    name: <<YOUR_PROVISIONER_NAME>>
+    kid: <<YOUR_BASE64_ENCODED_PROVISIONER_KID>>
+
+certificates:
+  intermediate: <<YOUR_BASE64_ENCODED_INTERMEDIATE_CERTIFICATE>>
+  root: <<YOUR_BASE64_ENCODED_ROOT_CERTIFICATE>>
+  caBundle: <<YOUR_BASE64_ENCODED_CA_BUNDLE>>
+  intermediateKey: <<YOUR_BASE64_ENCODED_INTERMEDIATE_KEY>>
+  caPassword: <<YOUR_BASE64_ENCODED_CA_PASSWORD>>

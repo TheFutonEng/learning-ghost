@@ -1,17 +1,17 @@
 apiVersion: k3d.io/v1alpha5
 kind: Simple
 metadata:
-  name: {{ clusterName }}
-servers: {{ k3dServers}}
-agents: {{ k3dAgents }}
+  name: {{ .ClusterName }}
+servers: {{ .K3dServers}}
+agents: {{ .K3dAgents }}
 kubeAPI:
   hostIP: "0.0.0.0"
-  hostPort: {{ apiServerPort }}
+  hostPort: "{{ .ApiServerPort }}"
 ports:
-  - port: {{ externalHttpPort }}:80
+  - port: {{ .ExternalHttpPort }}:80
     nodeFilters:
       - loadbalancer
-  - port: {{ externalHttpsPort }}:443
+  - port: {{ .ExternalHttpsPort }}:443
     nodeFilters:
       - loadbalancer
 options:
@@ -21,5 +21,5 @@ options:
         nodeFilters:
           - server:*
   runtime:
-    serversMemory: "{{ serversMemory }}"
-    serversCPU: "{{ serversCPU }}"
+    serversMemory: "{{ .ServersMemory }}"
+    serversCPU: "{{ .ServersCPU }}"

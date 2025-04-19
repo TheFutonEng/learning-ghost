@@ -15,12 +15,20 @@ deploy-cluster: delete-cluster
 # Delete k3d cluster and clean up resources
 delete-cluster:
     #!/usr/bin/env sh
-    if k3d cluster list | grep -q "keycloak"; then
+
+    if ! [ -f ./k3d/k3d-config.yaml ]; then
+        echo "No cluster configuration file found."
+        exit 0
+    fi
+
+    clusterName=$(yq .metadata.name k3d/k3d-config.yaml)
+
+    if k3d cluster list | grep -q "$clusterName"; then
         echo "Deleting existing cluster."
-        k3d cluster delete keycloak
+        k3d cluster delete $clusterName
         echo "Cleaning up resources."
-        docker network rm k3d-keycloak 2>/dev/null || true
-        docker volume rm k3d-keycloak-images 2>/dev/null || true
+        docker network rm k3d-$clusterName 2>/dev/null || true
+        docker volume rm k3d-$clusterName-images 2>/dev/null || true
     else
       echo "Cluster does not exist"
     fi
@@ -171,8 +179,13 @@ delete-wildcard-cert:
 # Add task to delete component under exploration
 
 # Reset everything and create a fresh cluster with all components
-reset-all:
+reset-all NAME:
     #!/usr/bin/env sh
+    echo "Resetting all components and cluster."
+
+    echo "Creating new cluster configuration."
+    just create-cluster-config {{NAME}}
+
     echo "Deploying fresh cluster."
     just deploy-cluster
 
@@ -189,7 +202,20 @@ reset-all:
     just setup-ca-integration
 
     echo "Waiting for all pods to be ready."
-    kubectl wait --for=condition=ready pod --all -n ingress-controller --timeout=300s
+    kubectl wait --for=condition=ready pod -n ingress-controller --selector '!job-name' --timeout=300s
     kubectl wait --for=condition=ready pod --all -n cert-manager --timeout=300s
 
     # Add deployment tasks for components under exploration here
+
+# Compile k3d-templater
+compile-templater:
+    go build -o k3d-templater ./go/k3d-templater.go
+
+# Create a new K3d cluster configuration
+create-cluster-config NAME: compile-templater
+    ./k3d-templater -name {{NAME}}
+
+# Create a K3d cluster with custom configuration
+create-custom-cluster-config NAME SERVERS="2" AGENTS="1" MEMORY="2gb" CPU="2":
+    ./k3d-templater -name {{NAME}} -servers {{SERVERS}} -agents {{AGENTS}} -memory {{MEMORY}} -cpu {{CPU}}
+    k3d cluster create --config k3d-{{NAME}}.yaml

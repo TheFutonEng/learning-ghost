@@ -12,7 +12,7 @@ controller:
     namespace: ingress-controller
     name: haproxy-tls
   extraArgs:
-    - --default-ssl-certificate=ingress-controller/wsp-local-tls
+    - --default-ssl-certificate=ingress-controller/local-tls
     - --allow-cross-namespace=true
   ingressClassResource:
     default: "true"

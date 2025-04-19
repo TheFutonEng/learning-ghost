@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -22,7 +23,7 @@ type K3dCluster struct {
 	} `json:"ports"`
 }
 
-// Config represents the template parameters
+// Config represents the template parameters for K3d
 type Config struct {
 	ClusterName       string
 	K3dServers        int
@@ -34,6 +35,12 @@ type Config struct {
 	ServersCPU        string
 }
 
+// CertConfig represents the template parameters for the certificate
+type CertConfig struct {
+	CommonName string
+	DnsName    string
+}
+
 func main() {
 	// Define command line flags
 	clusterName := flag.String("name", "", "Name of the cluster (required)")
@@ -42,8 +49,11 @@ func main() {
 	serversMemory := flag.String("memory", "1gb", "Memory for servers")
 	serversCPU := flag.String("cpu", "1", "CPU allocation for servers")
 	templatePath := flag.String("template", "k3d/k3d-template.yaml", "Path to the template file")
-	outputPath := flag.String("output", "", "Output file path (defaults to k3d-config.yaml)")
+	outputPath := flag.String("output", "", "Output file path (defaults to k3d/k3d-config.yaml)")
 	debug := flag.Bool("debug", false, "Enable debug output")
+	domain := flag.String("domain", "local", "Domain for wildcard certificate (default: 'local')")
+	certTemplate := flag.String("cert-template", "k8s/certificate-template.yaml", "Path to the certificate template file")
+	certOutput := flag.String("cert-output", "", "Certificate output file path (defaults to k8s/certificate.yaml)")
 
 	flag.Parse()
 
@@ -54,9 +64,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Set default output path if not provided
+	// Set default output paths if not provided
 	if *outputPath == "" {
-		*outputPath = fmt.Sprintf("k3d/k3d-config.yaml")
+		*outputPath = "k3d/k3d-config.yaml"
+	}
+
+	if *certOutput == "" {
+		*certOutput = "k8s/certificate.yaml"
 	}
 
 	// Find available ports
@@ -66,8 +80,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Create config with all parameters
-	config := Config{
+	// Create k3d config with all parameters
+	k3dConfig := Config{
 		ClusterName:       *clusterName,
 		K3dServers:        *k3dServers,
 		K3dAgents:         *k3dAgents,
@@ -78,10 +92,10 @@ func main() {
 		ServersCPU:        *serversCPU,
 	}
 
-	// Process the template
-	err = processTemplate(*templatePath, *outputPath, config)
+	// Process the k3d template
+	err = processTemplate(*templatePath, *outputPath, k3dConfig)
 	if err != nil {
-		fmt.Printf("Error processing template: %v\n", err)
+		fmt.Printf("Error processing K3d template: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -89,10 +103,33 @@ func main() {
 	fmt.Printf("API Port: %d\n", apiPort)
 	fmt.Printf("HTTP Port: %d\n", httpPort)
 	fmt.Printf("HTTPS Port: %d\n", httpsPort)
+
+	// Create certificate config
+	wildcard := fmt.Sprintf("*.%s", *domain)
+	certConfig := CertConfig{
+		CommonName: wildcard,
+		DnsName:    wildcard,
+	}
+
+	// Process the certificate template
+	err = processTemplate(*certTemplate, *certOutput, certConfig)
+	if err != nil {
+		fmt.Printf("Error processing certificate template: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("Created certificate configuration file: %s\n", *certOutput)
+	fmt.Printf("Certificate CommonName and DnsName: %s\n", wildcard)
 }
 
-// processTemplate reads the template file and writes the processed output
-func processTemplate(templatePath, outputPath string, config Config) error {
+// processTemplate reads a template file and writes the processed output
+func processTemplate(templatePath, outputPath string, config interface{}) error {
+	// Create parent directory if it doesn't exist
+	dir := filepath.Dir(outputPath)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Errorf("failed to create directory %s: %w", dir, err)
+	}
+
 	// Read template file
 	tmplContent, err := os.ReadFile(templatePath)
 	if err != nil {
@@ -100,7 +137,7 @@ func processTemplate(templatePath, outputPath string, config Config) error {
 	}
 
 	// Create template from string
-	tmpl, err := template.New("k3d").Parse(string(tmplContent))
+	tmpl, err := template.New(filepath.Base(templatePath)).Parse(string(tmplContent))
 	if err != nil {
 		return fmt.Errorf("failed to parse template: %w", err)
 	}

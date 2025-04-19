@@ -179,12 +179,12 @@ delete-wildcard-cert:
 # Add task to delete component under exploration
 
 # Reset everything and create a fresh cluster with all components
-reset-all NAME:
+reset-all NAME DOMAIN="local":
     #!/usr/bin/env sh
     echo "Resetting all components and cluster."
 
     echo "Creating new cluster configuration."
-    just create-cluster-config {{NAME}}
+    just create-cluster-config {{NAME}} {{DOMAIN}}
 
     echo "Deploying fresh cluster."
     just deploy-cluster
@@ -212,8 +212,8 @@ compile-templater:
     go build -o k3d-templater ./go/k3d-templater.go
 
 # Create a new K3d cluster configuration
-create-cluster-config NAME: compile-templater
-    ./k3d-templater -name {{NAME}}
+create-cluster-config NAME DOMAIN="local": compile-templater
+    ./k3d-templater -name {{NAME}} -domain {{DOMAIN}}
 
 # Create a K3d cluster with custom configuration
 create-custom-cluster-config NAME SERVERS="2" AGENTS="1" MEMORY="2gb" CPU="2":
